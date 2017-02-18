@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring accessors="true" comment="Delete element from project &apos;new_TexasHolde&apos;&#x0A;- Original project: &apos;new_TexasHolde&apos;&#x0A;- Original element: &apos;new_TexasHolde/src/org.apache.commons.lang3&apos;" description="Delete element" element1="/src&lt;org.apache.commons.lang3" element2="/src&lt;org.apache.commons" element3="/src&lt;org.apache" element4="/src&lt;org" elements="4" flags="589830" id="org.eclipse.jdt.ui.delete" resources="0" stamp="1486626288307" subPackages="false" version="1.0"/>
+</session>

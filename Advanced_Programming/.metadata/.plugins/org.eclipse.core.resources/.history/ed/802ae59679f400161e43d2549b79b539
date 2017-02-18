@@ -1,0 +1,466 @@
+package texas;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.*;
+
+public class Game {
+	private ArrayList<Card> board;
+	private ArrayList<Player> players; 
+	
+	public Game() {
+		board = new ArrayList<Card>();
+		players = new ArrayList<Player>();
+	}
+	
+	public void addPlayer(Player player) {
+		players.add(player);		
+	}
+	
+	public void setBoard(ArrayList<Card> board) {
+		this.board = new ArrayList<Card>(board);
+	}
+	
+	public String getPlayers(){
+		String playerlist = "";
+		for(int i=0;i<players.size();i++)
+			playerlist += players.get(i).getName().toString() + " " + players.get(i).getCards().toString();
+		return playerlist;
+	}
+	
+	public ArrayList<Card> getBoard(){
+		return board;
+	}
+	
+	public void readSettings(String filename) {
+		try
+		{
+			File file = new File(filename); 
+			BufferedReader reader = new BufferedReader(new FileReader (file));
+			String inputText = null;
+			while((inputText = reader.readLine()) != null)
+			{
+				// First line contains five cards
+				if(inputText.split(" ").length == 5)
+				{
+					String[] temp = inputText.split(" ");
+					for(int i=0; i < temp.length; i++)
+					{
+					    Card card = new Card(Integer.parseInt(temp[i]));
+					    board.add(card);
+					}
+				    setBoard(board);   
+				}
+				// Second line contains an integer -- the number of players
+				else if(inputText.split(" ").length == 1)
+				{
+					//do nothing with result
+				}
+				// Each following line contains name of the player and two cards
+				else
+				{
+					String[] temp = inputText.split(" ");
+				    Card card1 = new Card(Integer.parseInt(temp[1]));
+				    Card card2 = new Card(Integer.parseInt(temp[2]));
+				    ArrayList<Card> cards = new ArrayList<Card>();
+				    cards.add(card1);
+				    cards.add(card2);
+					Player player = new Player(temp[0], cards);
+					ArrayList<Hand> hands = generateCandidates(board, player);
+					Hand hand = getHighestRankHand(hands);
+					player = new Player(temp[0], hand.getCards());
+					addPlayer(player); 
+				}
+					
+			} 
+			reader.close();
+		} 
+		catch(IOException except)
+		{ 
+			System.err.println("Error: " + except.getMessage()); 
+			System.exit(1);
+		}
+		catch(Exception except)
+		{
+			System.err.println("Error in read: " + except.getMessage()); 
+			System.exit(1);
+		}
+		
+	}
+
+	public static Hand getHighestRankHand(ArrayList<Hand> Hands) {
+		Vector<Hand> temp = new Vector<Hand>();
+		temp.setSize(7);
+		for(int i=0; i<Hands.size(); i++)
+		{
+			if(Hands.get(i).determineHandRank().name() == "FOUR_OF_A_KIND")
+			{
+				if(temp.get(0) != null)
+				{	
+					if(temp.get(0).getCards().get(2).getRank() < Hands.get(i).getCards().get(2).getRank())
+						temp.set(0,Hands.get(i));	
+					else 
+					{
+						if(temp.get(0).getCards().get(0).getRank() == Hands.get(i).getCards().get(0).getRank()
+							&& temp.get(0).getCards().get(4).getRank() < Hands.get(i).getCards().get(4).getRank())
+							temp.set(0,Hands.get(i));	
+						else if(temp.get(0).getCards().get(4).getRank() == Hands.get(i).getCards().get(4).getRank()
+							&& temp.get(0).getCards().get(0).getRank() < Hands.get(i).getCards().get(0).getRank())
+							temp.set(0,Hands.get(i));	
+					}
+				}
+				else
+					temp.add(0,Hands.get(i));
+			}
+			else if(Hands.get(i).determineHandRank().name() == "FULL_HOUSE")
+			{
+				if(temp.get(1) != null)
+				{
+					
+					HashMap<Integer, Integer> repetitions = new HashMap<Integer, Integer>();
+				
+						for (int g = 0; g < temp.get(1).getCards().size(); g++)
+						  {
+						      int item = temp.get(1).getCards().get(g).getRank();
+
+						      if (repetitions.containsKey(item))
+						          repetitions.put(repetitions.get(item) + 1,item);
+						      else
+						          repetitions.put(1, item);
+						  }	
+					  
+					HashMap<Integer, Integer> repetitions1 = new HashMap<Integer, Integer>();
+
+					  for (int g = 0; g < Hands.get(i).getCards().size(); g++)
+					  {
+					      int item = Hands.get(i).getCards().get(g).getRank();
+
+					      if (repetitions1.containsKey(item))
+					          repetitions1.put(repetitions1.get(item) + 1,item);
+					      else
+					          repetitions1.put(1, item);
+					  }
+					NavigableMap<Integer, Integer> map = new TreeMap<Integer, Integer>(repetitions);
+					NavigableMap<Integer, Integer> other = new TreeMap<Integer, Integer>(repetitions1);
+					map.values().removeIf(Objects::isNull);
+					other.values().removeIf(Objects::isNull);
+					
+					if(map.lastEntry().getValue() < other.lastEntry().getValue())
+						temp.set(1,Hands.get(i));
+					else if(map.lastEntry().getValue().equals(other.lastEntry().getValue()))
+					{
+						if(map.firstEntry().getValue() < other.firstEntry().getValue())
+							temp.set(1,Hands.get(i));	
+					}					
+				}
+				else 
+					temp.set(1,Hands.get(i));
+			}
+			else if(Hands.get(i).determineHandRank().name() == "STRAIGHT")
+			{
+				if(temp.get(2) != null)
+				{
+					if(temp.get(2).getCards().get(0).getRank() <= Hands.get(i).getCards().get(0).getRank())
+						temp.set(2,Hands.get(i));	
+				}
+				else
+					temp.set(2,Hands.get(i));
+			}
+			else if(Hands.get(i).determineHandRank().name() == "THREE_OF_A_KIND")
+			{
+				if(temp.get(3) != null)
+				{
+					if(temp.get(3).getCards().get(2).getRank() < Hands.get(i).getCards().get(2).getRank())
+						temp.set(3,Hands.get(i));
+					else 
+					{
+						if(temp.get(3).getCards().get(0).getRank() == Hands.get(i).getCards().get(0).getRank()
+								&& temp.get(3).getCards().get(3).getRank() < Hands.get(i).getCards().get(3).getRank())
+							temp.set(3,Hands.get(i));	
+						else if(temp.get(3).getCards().get(1).getRank() == Hands.get(i).getCards().get(1).getRank()
+							&& temp.get(3).getCards().get(3).getRank() == Hands.get(i).getCards().get(3).getRank()
+							&& temp.get(3).getCards().get(0).getRank() < Hands.get(i).getCards().get(0).getRank())
+							temp.set(3,Hands.get(i));	
+						else if(temp.get(3).getCards().get(4).getRank() == Hands.get(i).getCards().get(4).getRank()
+							&& temp.get(3).getCards().get(0).getRank() < Hands.get(i).getCards().get(0).getRank())
+							temp.set(3,Hands.get(i));	
+					}
+				}
+				else
+					temp.set(3,Hands.get(i));
+			}
+			else if(Hands.get(i).determineHandRank().name() == "TWO_PAIR")
+			{
+				
+				if(temp.get(4) != null)
+				{
+					HashMap<Integer, Integer> repetitions = new HashMap<Integer, Integer>();
+
+						for (int g = 0; g < temp.get(4).getCards().size(); g++)
+						  {
+						      int item = temp.get(4).getCards().get(g).getRank();
+
+						      if (repetitions.containsKey(item))
+						          repetitions.put(repetitions.get(item) + 1,item);
+						      else
+						          repetitions.put(1, item);
+						  }	
+
+					HashMap<Integer, Integer> repetitions1 = new HashMap<Integer, Integer>();
+
+					  for (int g = 0; g < Hands.get(i).getCards().size(); g++)
+					  {
+					      int item = Hands.get(i).getCards().get(g).getRank();
+
+					      if (repetitions1.containsKey(item))
+					          repetitions1.put(repetitions1.get(item) + 1,item);
+					      else
+					          repetitions1.put(1, item);
+					  }
+					NavigableMap<Integer, Integer> map = new TreeMap<Integer, Integer>(repetitions);
+					NavigableMap<Integer, Integer> other = new TreeMap<Integer, Integer>(repetitions1);
+					map.values().removeIf(Objects::isNull);
+					other.values().removeIf(Objects::isNull);
+
+					
+						if(map.lastEntry().getValue() < other.lastEntry().getValue())
+							temp.set(4,Hands.get(i));
+						else if(map.lastEntry().getValue().equals(other.lastEntry().getValue()))
+						{
+							if(map.firstEntry().getValue() < other.firstEntry().getValue())
+								temp.set(4,Hands.get(i));	
+							else if(map.firstEntry().getValue() == other.firstEntry().getValue())
+							{
+								if(temp.get(4).getCards().get(0).getRank() == Hands.get(i).getCards().get(0).getRank() 
+									&& temp.get(4).getCards().get(4).getRank() == Hands.get(i).getCards().get(4).getRank() 
+									&& temp.get(4).getCards().get(2).getRank() < Hands.get(i).getCards().get(2).getRank())
+									temp.set(4,Hands.get(i));	
+								else if(temp.get(4).getCards().get(0).getRank() == Hands.get(i).getCards().get(0).getRank() 
+									&& temp.get(4).getCards().get(3).getRank() == Hands.get(i).getCards().get(3).getRank() 
+									&& temp.get(4).getCards().get(4).getRank() < Hands.get(i).getCards().get(4).getRank())
+									temp.set(4,Hands.get(i));	
+								else if(temp.get(4).getCards().get(1).getRank() == Hands.get(i).getCards().get(1).getRank() 
+										&& temp.get(4).getCards().get(4).getRank() == Hands.get(i).getCards().get(4).getRank() 
+										&& temp.get(4).getCards().get(0).getRank() < Hands.get(i).getCards().get(0).getRank())
+									temp.set(4,Hands.get(i));	
+							}
+						}
+				}
+				else 
+					temp.set(4,Hands.get(i));
+			}
+			else if(Hands.get(i).determineHandRank().name() == "PAIR")
+			{
+				if(temp.get(5) != null)
+				{
+					HashMap<Integer, Integer> repetitions = new HashMap<Integer, Integer>();
+
+					for (int g = 0; g < temp.get(5).getCards().size(); g++)
+					  {
+					      int item = temp.get(5).getCards().get(g).getRank();
+
+					      if (repetitions.containsKey(item))
+					          repetitions.put(repetitions.get(item) + 1,item);
+					      else
+					          repetitions.put(1, item);
+					  }	
+					
+					HashMap<Integer, Integer> repetitions1 = new HashMap<Integer, Integer>();
+
+					  for (int g = 0; g < Hands.get(i).getCards().size(); g++)
+					  {
+					      int item = Hands.get(i).getCards().get(g).getRank();
+
+					      if (repetitions1.containsKey(item))
+					          repetitions1.put(repetitions1.get(item) + 1,item);
+					      else
+					          repetitions1.put(1, item);
+					  }
+					NavigableMap<Integer, Integer> map = new TreeMap<Integer, Integer>(repetitions);
+					NavigableMap<Integer, Integer> other = new TreeMap<Integer, Integer>(repetitions1);
+					map.values().removeIf(Objects::isNull);
+					other.values().removeIf(Objects::isNull);
+
+					if(map.lastEntry().getValue() < other.lastEntry().getValue())
+						temp.set(5,Hands.get(i));
+					else if(map.lastEntry().getValue().equals(other.lastEntry().getValue()))
+					{
+						if(temp.get(5).getCards().get(0).getRank() == Hands.get(i).getCards().get(0).getRank() 
+							&& temp.get(5).getCards().get(1).getRank() < Hands.get(i).getCards().get(1).getRank())
+							temp.set(5,Hands.get(i));
+						else if(temp.get(5).getCards().get(1).getRank() == Hands.get(i).getCards().get(1).getRank() 
+							&& temp.get(5).getCards().get(2).getRank() < Hands.get(i).getCards().get(2).getRank())
+							temp.set(5,Hands.get(i));
+						else if(temp.get(5).getCards().get(2).getRank() == Hands.get(i).getCards().get(2).getRank() 
+							&& temp.get(5).getCards().get(3).getRank() < Hands.get(i).getCards().get(3).getRank())
+							temp.set(5,Hands.get(i));
+						else if(temp.get(5).getCards().get(3).getRank() == Hands.get(i).getCards().get(3).getRank() 
+							&& temp.get(5).getCards().get(4).getRank() < Hands.get(i).getCards().get(4).getRank())
+							temp.set(5,Hands.get(i));
+						else if(temp.get(5).getCards().get(4).getRank() == Hands.get(i).getCards().get(4).getRank() 
+							&& temp.get(5).getCards().get(0).getRank() < Hands.get(i).getCards().get(0).getRank())
+							temp.set(5,Hands.get(i));
+					}
+				} 
+				else 
+					temp.set(5,Hands.get(i));
+			}			
+			else
+			{
+				if(temp.get(6) != null)
+				{
+					if(temp.get(6).getCards().get(0).getRank() <= Hands.get(i).getCards().get(0).getRank())
+						temp.set(6,Hands.get(i));	
+				}
+				else
+					temp.set(6,Hands.get(i));		
+			}
+		}
+		temp.removeAll(Collections.singleton(null));
+		Hand hand = new Hand(temp.firstElement().getCards());
+		return hand;
+	}
+	
+	public static ArrayList<Hand> generateCandidates(ArrayList<Card> board, Player player) {
+		ArrayList<Hand> candidates = new ArrayList<Hand>();
+		ArrayList<Card> temp = new ArrayList<Card>();
+		temp.addAll(board);
+		temp.addAll(player.getCards());
+		Hand htemp = new Hand(temp);
+		candidates = combinations(temp, htemp);
+		for(int i=0; i< candidates.size(); i++)
+		{
+			for(int j=i+1; j < candidates.size(); j++)
+			{	
+				if(candidates.get(i).getCards() == candidates.get(j).getCards())
+				{
+					candidates.remove(j);
+				}
+			}
+		}
+		return candidates;
+	}
+	
+
+	public static ArrayList<Hand> combinations(ArrayList<Card> arr, Hand htemp)
+	{
+		ArrayList<Hand> candidates = new ArrayList<Hand>(); 
+		for(int i=0; i<arr.size(); i++)
+		{
+			for(int j=i+1; j<arr.size(); j++)
+			{
+				for(int k=j+1; k<arr.size(); k++)
+				{
+					for(int l=k+1; l<arr.size(); l++)
+					{
+						for(int m=l+1; m<arr.size(); m++)
+						{
+							ArrayList<Card> ctemp = new ArrayList<Card>();
+							ctemp.add(arr.get(i));
+							ctemp.add(arr.get(j));
+							ctemp.add(arr.get(k));
+							ctemp.add(arr.get(l));
+							ctemp.add(arr.get(m));
+							htemp = new Hand(ctemp);
+							Set<Card> hs = new HashSet<Card>();
+							hs.addAll(htemp.getCards());
+							htemp.getCards().clear();
+							htemp.getCards().addAll(hs);
+							htemp = new Hand(bubbleSort(htemp.getCards()));
+							if(htemp.getCards().size() == 5)
+								candidates.add(htemp);
+						}
+					}	
+				}
+			}
+
+		}	
+		return candidates;
+
+		
+//		if(index == r)
+//		{
+//			ArrayList<Card> ctemp = new ArrayList<Card>(); 
+//			for(int j=0; j<r; j++)
+//				ctemp.add(data.get(j));
+//			htemp = new Hand(ctemp);
+//			Set<Card> hs = new HashSet<Card>();
+//			hs.addAll(htemp.getCards());
+//			htemp.getCards().clear();
+//			htemp.getCards().addAll(hs);
+//			htemp = new Hand(bubbleSort(htemp.getCards()));
+//			if(htemp.getCards().size() == 5)
+//				candidates.add(htemp);
+//		}
+//		for(int i=start; i<=end && end-i+1 >= r-index; i++)
+//		{
+//			data.add(index, arr.get(i));
+//			combinations(arr, data, i+1, end, index+1, r, htemp, candidates);
+//		}
+	}
+	
+	static ArrayList<Card> bubbleSort(ArrayList<Card> arr) 
+	{  
+        int n = arr.size();  
+        Card temp;  
+         for(int i=0; i < n; i++)
+         {  
+             for(int j=1; j < (n-i); j++)
+             {  
+                  if(arr.get(j-1).rank < arr.get(j).getRank())
+                  {  
+                         //swap elements  
+                         temp = arr.get(j-1);  
+                         arr.set(j-1,arr.get(j));
+                         arr.set(j, temp);  
+                 }  
+                      
+             }  
+         }
+		return arr;  
+	}
+	
+	public String announceWinner() {
+		HashMap<Integer, ArrayList<String>> temp = new HashMap<Integer, ArrayList<String>>();
+		for(int i=0; i< players.size(); i++)
+		{
+			Hand hand = new Hand(players.get(i).getCards());
+			int score = 0;
+			ArrayList<String> values = new ArrayList<String>();
+			for(int j=0; j<players.size(); j++)
+			{
+				Hand other = new Hand(players.get(j).getCards());
+				score += hand.compareTo(other);
+				if(hand.compareTo(other) == 0)
+					values.add(players.get(j).getName());
+			}
+			temp.put(score, values);
+		}
+		NavigableMap<Integer, ArrayList<String>> map = new TreeMap<Integer, ArrayList<String>>(temp);
+		map.values().removeIf(Objects::isNull);
+		
+		if(map.lastEntry().getValue().size() == 1)
+			return map.lastEntry().getValue().get(0) + " wins";
+		else if(map.lastEntry().getValue().size() > 1)
+		{
+			String temp1 = "";
+			for(int i=0; i < map.lastEntry().getValue().size(); i++)
+				temp1 += map.lastEntry().getValue().get(i) + " ";
+			temp1 += "tie";
+			return temp1;
+		}
+		else return "Shouldnt happen";
+			
+	}	
+	
+	public static void main(String[] Args) {
+		// NOTE: Please do not change the main function; Needed for AutoGrading
+		// In Eclipse, you can create settings.conf file under the project
+		Game game = new Game();
+		game.readSettings("/Users/IM_working/Desktop/Compsci/Advanced_Programming/new_TexasHolde/src/settings.conf");
+		System.out.println(game.announceWinner());
+		System.out.println(game.getPlayers().toString());
+	}
+}

@@ -1,0 +1,298 @@
+package texas;
+
+import static org.junit.Assert.*;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
+import java.util.*;
+import org.junit.*;
+
+public class TestGame {
+	
+//	@Before 
+//	public void initialize() {
+//		ArrayList<Card> board = new ArrayList<Card>();
+//		ArrayList<Card> hand1 = new ArrayList<Card>();
+//		ArrayList<Card> hand2 = new ArrayList<Card>();
+//	}	
+//	@After
+//    public void tearDown() {
+//        board.clear();
+//        hand1.clear();
+//    }
+//	
+//	public TestGame(){
+//		
+//	}
+	
+	@Test
+	public void TestGenerateCandidates()
+	{	
+		ArrayList<Card> board = new ArrayList<Card>();
+		ArrayList<Card> player=new ArrayList<Card>();
+
+		Card one=new Card(5);
+		Card two=new Card('K');
+		Card three=new Card(5);
+		Card Four=new Card(8);
+		Card Five=new Card(7);
+		
+		board.add(one);
+		board.add(two);
+		board.add(three);
+		board.add(Four);
+		board.add(Five);
+		
+		Card player_one=new Card('A');
+		Card player_two=new Card(5);
+		
+		player.add(player_one);
+		player.add(player_two);
+		
+		String Player_name="Doe";
+		
+		Player Player = new Player(Player_name, player);
+		
+		ArrayList<Hand> hand = Game.generateCandidates(board, Player);
+		
+		int numberofcandidates = hand.size();
+		assertEquals(21,numberofcandidates,0);
+	}
+	
+	@Test
+	public void TestCompareHandsHigher()
+	{
+		//need to compare two hands
+			ArrayList<Card> hand =new ArrayList<Card>();
+			Card card1 = new Card(1);
+			Card card2 = new Card(5);
+			Card card3 = new Card('A');
+			Card card4 = new Card('A');
+			Card card5 = new Card(10);
+			
+			hand.add(card1);
+			hand.add(card2);
+			hand.add(card3);
+			hand.add(card4);
+			hand.add(card5);
+	
+		//	String Simulation_Name_One="First Simulation Hand";
+			
+			ArrayList<Card> hand2 =new ArrayList<Card>();
+			Card card6 = new Card(1);
+			Card card7 = new Card(5);
+			Card card8 = new Card('A');
+			Card card9 = new Card('J');
+			Card card10 = new Card(10);
+			
+			hand2.add(card6);
+			hand2.add(card7);
+			hand2.add(card8);
+			hand2.add(card9);
+			hand2.add(card10);
+	
+			// Simulation_Hand_Two="Second Simulation Hand";
+			
+			Hand high = new Hand(hand);
+			Hand low = new Hand(hand2);
+			
+			int value = high.compareTo(low);
+			assertEquals(value,1);
+			
+		
+	}
+	@Test
+	public void TestCompareHandsLow()
+	{
+			ArrayList<Card> hand = new ArrayList<Card>();
+			Card card1 = new Card(4);
+			Card card2 = new Card(4);
+			Card card3 = new Card(4);
+			Card card4 = new Card(7);
+			Card card5 = new Card('K');
+			
+			hand.add(card1);
+			hand.add(card2);
+			hand.add(card3);
+			hand.add(card4);
+			hand.add(card5);
+			
+		//	String Simulation_Name_One="First Simulation Hand";
+			
+			ArrayList<Card> hand2 =new ArrayList<Card>();
+			Card card6 = new Card(5);
+			Card card7 = new Card(5);
+			Card card8 = new Card(5);
+			Card card9 = new Card(2);
+			Card card10 = new Card(10);
+			
+			hand2.add(card6);
+			hand2.add(card7);
+			hand2.add(card8);
+			hand2.add(card9);
+			hand2.add(card10);
+	
+			// Simulation_Hand_Two="Second Simulation Hand";
+			
+			Hand high = new Hand(hand2);
+			Hand low = new Hand(hand);
+			
+			int value = low.compareTo(high);
+			assertEquals(value,-1);
+		
+		
+	}
+
+	
+	@Test
+	public void TestCompareHandsEquals()
+	{
+			ArrayList<Card> hand = new ArrayList<Card>();
+			Card card1 = new Card(4);
+			Card card2 = new Card(4);
+			Card card3 = new Card(4);
+			Card card4 = new Card(4);
+			Card card5 = new Card(10);
+			
+			hand.add(card1);
+			hand.add(card2);
+			hand.add(card3);
+			hand.add(card4);
+			hand.add(card5);
+			
+		//	String Simulation_Name_One="First Simulation Hand";
+			
+			ArrayList<Card> hand2 =new ArrayList<Card>();
+			Card card6 = new Card(4);
+			Card card7 = new Card(4);
+			Card card8 = new Card(4);
+			Card card9 = new Card(4);
+			Card card10 = new Card(10);
+			
+			
+			hand2.add(card6);
+			hand2.add(card7);
+			hand2.add(card8);
+			hand2.add(card9);
+			hand2.add(card10);
+		
+			// Simulation_Hand_Two="Second Simulation Hand";
+			
+			Hand high = new Hand(hand);
+			Hand low = new Hand(hand2);
+			
+			int value = high.compareTo(low);
+			assertEquals(value, 0);
+	}
+	
+	@Test 
+	public void TestAnnouceWinnerWins() throws Exception{
+		FileWriter writer = new FileWriter("TestSettings.conf");
+		writer.write("2 3 4 5 6\n"
+    			+"4\n"
+    			+"John 1 7\n"
+    			+"Doe 7 8\n"
+    			+"Jane 4 4\n"
+    			+"Stan 5 2"
+    			);
+		writer.close();
+		
+		Game game = new Game();
+		game.readSettings("TestSettings.conf");
+		assertEquals("Doe wins", game.announceWinner());
+	}
+
+	@Test 
+	public void TestAnnouceWinnerTies() throws Exception{
+		FileWriter writer = new FileWriter("TestSettings.conf");
+		writer.write("2 3 4 5 6\n"
+    			+"4\n"
+    			+"John 1 7\n"
+    			+"Doe 7 8\n"
+    			+"Jane 4 4\n"
+    			+"Stan 7 8"
+    			);
+		writer.close();
+		
+		Game game = new Game();
+		game.readSettings("TestSettings.conf");
+		assertEquals("Doe Stan tie", game.announceWinner());
+	}
+	
+	@Test 
+	public void TestReadSettingsBoard() throws Exception{
+		FileWriter writer = new FileWriter("TestSettings.conf");
+		writer.write("2 3 4 5 6\n"
+    			+"4\n"
+    			+"John 1 7\n"
+    			+"Doe 7 8\n"
+    			+"Jane 4 4\n"
+    			+"Stan 5 2"
+    			);
+		writer.close();
+		
+		ArrayList<Card> board = new ArrayList<Card>();
+		Card card1 = new Card(2);
+		Card card2 = new Card(3);
+		Card card3 = new Card(4);
+		Card card4 = new Card(5);
+		Card card5 = new Card(6);
+		board.add(card1);
+		board.add(card2);
+		board.add(card3);
+		board.add(card4);
+		board.add(card5);
+		
+		Game game = new Game();
+		game.readSettings("TestSettings.conf");
+				
+		assertEquals(game.getBoard().toString(), board.toString());
+	}
+
+	@Test 
+	public void TestReadSettingsPlayersAND() throws Exception{
+		FileWriter writer = new FileWriter("TestSettings.conf");
+		writer.write("2 3 4 5 6\n"
+    			+"2\n"
+    			+"John 14 11\n"
+    			+"Doe 13 12\n"
+    			+"Doe 6 2\n"
+    			);
+		writer.close();
+		
+		Game game = new Game();
+		game.readSettings("TestSettings.conf");
+
+		String temp = "John[A, J] Doe[K, Q] ";
+		assertEquals(game.getPlayers(), temp);
+	}	
+	
+	@Test 
+	public void TestReadSettingsPlayersAmount() throws Exception{
+		FileWriter writer = new FileWriter("TestSettings.conf");
+		writer.write("2 3 4 5 6\n"
+    			+"2\n"
+    			+"John 1 7\n"
+    			+"Doe 7 8\n"
+    			);
+		writer.close();
+		
+		Game game = new Game();
+		game.readSettings("TestSettings.conf");
+
+		assertEquals(game.getNumPlayers(), 2, 0);
+	}
+}
