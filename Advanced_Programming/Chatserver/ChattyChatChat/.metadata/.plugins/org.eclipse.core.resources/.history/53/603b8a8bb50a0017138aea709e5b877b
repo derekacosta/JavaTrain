@@ -1,0 +1,202 @@
+package socket;
+
+/*
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ *   - Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *
+ *   - Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *
+ *   - Neither the name of Oracle or the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */ 
+
+import java.net.*;
+import java.util.ArrayList;
+
+
+import java.io.*;
+
+public class ChattyChatChatServer implements Runnable{
+
+	
+	private static ArrayList<String> names = new ArrayList<String>();
+	
+	//to keep track of where to send chats
+	private static ArrayList<PrintWriter> writers = new ArrayList<PrintWriter>(); 
+	
+	static int id = 0;
+	private static String[] argu = null;
+
+	public static void main(String[] args) throws IOException {
+        
+        if (args.length != 1)
+        {
+            System.err.println("Usage: java ChattyChatChatServer <port number>");
+            System.exit(1);
+        }
+        else
+        {
+        	argu = args;
+            new ChattyChatChatServer().acceptConnection();
+        }
+
+    }
+
+
+    
+    private void acceptConnection() {
+        Thread serverThread = new Thread(this);
+        serverThread.start();
+    }
+
+	@Override
+	public void run() {
+	    int portNumber = Integer.parseInt(argu[0]); 
+	    boolean listening = true;
+	    
+		try(ServerSocket serverSocket = new ServerSocket(portNumber))
+		{
+			while (listening) 
+            {
+            	new ServerListener(serverSocket.accept()).start();
+	        }
+	    } 
+        catch (IOException e) 
+        {
+            System.out.println("Exception caught when trying to listen on port "
+            	+ portNumber + " or listening for a connection");
+            System.out.println(e.getMessage());
+        }		
+	}
+	
+	public static class ServerListener extends Thread
+	{
+		private Socket socket = null;
+		private BufferedReader in;
+		private String name;
+		private PrintWriter out;
+		private int LocalID = id++;
+		
+		public ServerListener(Socket socket)
+		{
+			this.socket = socket;
+		}
+		
+		public void run()
+		{
+			
+			try
+			{
+				out = new PrintWriter(socket.getOutputStream(), true);
+				in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+				name = "anonymous " + LocalID;
+				
+				
+				
+				//code for processing the thread
+				writers.add(out);
+				names.add(name);
+				
+				
+				out.println("WELCOME TO SERVER");
+				
+				
+				
+				while(true)
+				{
+					for(int i = 0; i < names.size(); i++)
+						System.out.println(names.get(i));
+					
+					String input = in.readLine();
+					if (input.equals(null))
+					{
+						return;
+					}
+					
+					System.out.println(input);
+					String [] checkInput = input.split(" ");
+					
+					//if the user wants to set a nickname
+					if (checkInput[0].equals("/nick"))
+					{
+						name = checkInput[1];
+						names.set(LocalID, name);
+						
+					}
+					else if (checkInput[0].equals("/dm") )
+					{
+						//direct message
+						
+						//iterate through the names array
+						for (int i = 0; i < names.size(); i++)
+						{
+							//if the name matches the dm argument, then send rest of line to that writer
+							if (names.get(i).equals(checkInput[1]) )
+							{
+								writers.get(i).print(name + ": ");
+								for (int j = 2; j < checkInput.length; j++)
+								{
+									writers.get(i).print(checkInput[j] + " ");
+								}
+								writers.get(i).println();
+							}
+							
+						}
+						
+					}
+					//break out of loop if user wants to quit
+					else if (checkInput[0].equals("/quit"))
+					{
+						writers.get(LocalID).println("/quit");						
+						break;
+					}
+					//int j = 0;
+					else
+					{
+						int j = 0;
+						for (PrintWriter writer: writers)
+						{
+							if(j != LocalID)
+								writer.println(name + ": " + input);
+							j++;
+						}
+					}
+				}
+				
+				
+			}
+			catch(IOException e) {
+				e.printStackTrace();
+
+			}
+		}
+		
+	
+	
+	}//END class ChatThread
+
+}
+
+
+
