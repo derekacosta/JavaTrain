@@ -1,0 +1,8 @@
+
+How to Run Program:
+
+Click anywhere above the buttons to open a door and let balls through.
+Click on the add balls button to add more balls to either side.
+Click on the reset button to return to the initial screen with the original number of balls.
+
+Observe the temperature of each side of the wall, calculated based on the number and type of ball on each side.
